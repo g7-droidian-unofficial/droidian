@@ -1,0 +1,26 @@
+########################################################################
+# Basic anchors                                                        #
+########################################################################
+
+.sony_griffin_packages:
+  packages: &sony_griffin_packages
+    - adaptation-sony-griffin
+    - adaptation-sony-griffin-configs
+
+########################################################################
+# Device specific images                                               #
+########################################################################
+
+#
+# Sony
+#
+
+# Sony Xperia 1 (griffin)
+sony_griffin:
+  type: image
+  arch: arm64
+  edition: phosh
+  variant: phone
+  apilevel: 30
+
+  packages: *sony_griffin_packages
