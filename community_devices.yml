@@ -7,6 +7,11 @@
     - adaptation-sony-griffin
     - adaptation-sony-griffin-configs
 
+.generic_510android12_api32_packages:
+  packages: &generic_510android12_api32_packages
+    - adaptation-hybris-api32-phone
+    - linux-bootimage-common-5.10-android12
+
 ########################################################################
 # Device specific images                                               #
 ########################################################################
@@ -24,3 +29,12 @@ sony_griffin:
   apilevel: 30
 
   packages: *sony_griffin_packages
+
+generic_510android12_api32:
+  type: image
+  arch: arm64
+  edition: phosh
+  variant: phone
+  apilevel: 32
+
+  packages: *generic_510android12_api32_packages
