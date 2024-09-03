@@ -11,6 +11,7 @@
   packages: &generic_510android12_api32_packages
     - adaptation-hybris-api32-phone
     - linux-bootimage-common-5.10-android12-gzip
+    - adaptation-android-generic
 
 ########################################################################
 # Device specific images                                               #
