@@ -39,6 +39,7 @@ TEMPLATE = """
 {{- $output_type := or .output_type "%(output_type)s" -}}
 {{- $use_internal_repository := or .use_internal_repository "%(use_internal_repository)s" -}}
 {{- $droidian_version := or .droidian_version "%(version)s" -}}
+{{- $droidian_variant := or .droidian_variant "%(droidian_variant)s" -}}
 
 architecture: {{ $architecture }}
 actions:
@@ -76,6 +77,7 @@ TEMPLATE_ENTRYPOINT = """
       output_type: {{ $output_type }}
       use_internal_repository: {{ $use_internal_repository }}
       droidian_version: {{ $droidian_version }}
+      droidian_variant: {{ $droidian_variant }}
 """
 
 TEMPLATE_BUNDLE = """
@@ -116,11 +118,13 @@ def get_matrix(contents):
 						"edition" : edition,
 						"variant" : variant,
 						"apilevel" : apilevel,
+						"droidian_variant" : droidian_variant,
 					}
 					for arch in get_list(config.get("arch", ["arm64"]))
 					for edition in get_list(config.get("edition", ["phosh"]))
 					for variant in get_list(config.get("variant", ["standard"]))
 					for apilevel in get_list(config.get("apilevel", [28]))
+					for droidian_variant in get_list(config.get("droidian_variant", ""))
 				]
 				for product, config in contents.items()
 				if not product.startswith(".")
@@ -128,7 +132,7 @@ def get_matrix(contents):
 		)
 	)
 
-def generate_recipe_for_product(contents, product, arch, edition, variant, apilevel):
+def generate_recipe_for_product(contents, product, arch, edition, variant, apilevel, droidian_variant=None):
 	"""
 	Generates a debos recipe for the given product
 	"""
@@ -149,6 +153,7 @@ def generate_recipe_for_product(contents, product, arch, edition, variant, apile
 		"apilevel" : int(apilevel),
 		"mtype" : "OFFICIAL" if not IS_COMMUNITY_PORT else "UNOFFICIAL",
 		"version" : os.environ.get("DROIDIAN_VERSION", "next"),
+		"droidian_variant" : "_%s" % droidian_variant if droidian_variant else "",
 		"suffix" : datetime.datetime.utcnow().strftime("%Y%m%d"),
 		"output_type" : config["type"],
 		"use_internal_repository" : "yes" if config.get("use_internal_repository", False) else "no",
@@ -158,35 +163,37 @@ def generate_recipe_for_product(contents, product, arch, edition, variant, apile
 	with open(os.path.join(BUILDER_GENERATED_DIRECTORY, "product.yaml"), "w") as f:
 		f.write(TEMPLATE % template_config)
 
-		if config["type"] == "rootfs" and config.get("bundles", []):
-			for bundle in config["bundles"]:
-				write_end = False
-				if bundle["arch"] in ("any", arch) and bundle.get("apilevel", 28) in ("any", int(apilevel)):
-					if bundle.get("only_stable", False):
-						f.write(TEMPLATE_ONLY_STABLE)
-						write_end = True
-					elif bundle.get("only_nightly", False):
-						f.write(TEMPLATE_ONLY_NIGHTLY)
-						write_end = True
+		if config["type"] == "rootfs":
+			if config.get("bundles", []):
+				for bundle in config["bundles"]:
+					write_end = False
+					if bundle["arch"] in ("any", arch) and bundle.get("apilevel", 28) in ("any", int(apilevel)):
+						if bundle.get("only_stable", False):
+							f.write(TEMPLATE_ONLY_STABLE)
+							write_end = True
+						elif bundle.get("only_nightly", False):
+							f.write(TEMPLATE_ONLY_NIGHTLY)
+							write_end = True
 
-					f.write(
-						TEMPLATE_BUNDLE % {
-							"name" : bundle["name"],
-							"architecture" : arch,
-							"packages" : " ".join(bundle["packages"]),
-							"apilevel" : int(apilevel),
-						}
-					)
+						f.write(
+							TEMPLATE_BUNDLE % {
+								"name" : bundle["name"],
+								"architecture" : arch,
+								"packages" : " ".join(bundle["packages"]),
+								"apilevel" : int(apilevel),
+							}
+						)
 
-					if write_end:
-						f.write(TEMPLATE_END)
-		elif config["type"] == "rootfs" and config.get("packages", []):
-			f.write(
-				TEMPLATE_IMAGE_ADAPTATION % {
-					"architecture" : arch,
-					"packages" : " ".join(config["packages"])
-				}
-			)
+						if write_end:
+							f.write(TEMPLATE_END)
+
+			if config.get("packages", []):
+				f.write(
+					TEMPLATE_IMAGE_ADAPTATION % {
+						"architecture" : arch,
+						"packages" : " ".join(config["packages"])
+					}
+				)
 		elif config["type"] == "image":
 			f.write(
 				TEMPLATE_IMAGE_ADAPTATION % {
@@ -226,6 +233,7 @@ def prompt_product(contents):
 			available[choice]["edition"],
 			available[choice]["variant"],
 			available[choice]["apilevel"],
+			available[choice].get("droidian_variant", None),
 		)
 	except:
 		raise
@@ -247,12 +255,12 @@ if __name__ == "__main__":
 		break
 
 	argc = len(sys.argv)
-	if argc == 6:
+	if argc >= 6:
 		generate_recipe_for_product(contents, *sys.argv[1:])
 	elif argc == 1:
 		prompt_product(contents)
 	elif "--matrix" in sys.argv:
 		print(json.dumps(get_matrix(contents)))
 	else:
-		sys.stderr.write("USAGE: generate_device_recipe.py [--matrix]|(<product_name> <arch> <edition> <variant> <apilevel>)\n")
+		sys.stderr.write("USAGE: generate_device_recipe.py [--matrix]|(<product_name> <arch> <edition> <variant> <apilevel> (droidian_variant))\n")
 		sys.exit(1)
