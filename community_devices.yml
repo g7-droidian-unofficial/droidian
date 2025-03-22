@@ -13,6 +13,16 @@
     - linux-bootimage-common-5.10-android12-gzip
     - adaptation-android-generic
 
+.generic_api33_packages:
+  packages: &generic_api33_packages
+    - adaptation-hybris-api33-phone
+    - adaptation-android-generic
+
+.generic_api32_packages:
+  packages: &generic_api32_packages
+    - adaptation-hybris-api32-phone
+    - adaptation-android-generic
+
 .generic_api30_packages:
   packages: &generic_api30_packages
     - adaptation-hybris-api30-phone
@@ -51,6 +61,16 @@ sony_griffin:
 # Generic images
 #
 
+# API33 (no kernel)
+generic_api33:
+  type: image
+  arch: arm64
+  edition: phosh
+  variant: phone
+  apilevel: 33
+
+  packages: *generic_api33_packages
+
 # API32 (5.10-android12-gzip kernel)
 generic_510android12_api32:
   type: image
@@ -60,6 +80,16 @@ generic_510android12_api32:
   apilevel: 32
 
   packages: *generic_510android12_api32_packages
+
+# API32 (no kernel)
+generic_api32:
+  type: image
+  arch: arm64
+  edition: phosh
+  variant: phone
+  apilevel: 32
+
+  packages: *generic_api32_packages
 
 # API30 (no kernel)
 generic_api30:
